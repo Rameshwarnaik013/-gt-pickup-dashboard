@@ -517,7 +517,9 @@
 
 <script>
   const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPnJ4FQQlA44kNyKO74WCaXh0EJARjZzZA6n9wFPPVN5828-lzn8dJaogx8yeGUEQ1/exec";
-  let SCRIPT_URL = localStorage.getItem("gtPickupScriptUrl") || DEFAULT_SCRIPT_URL;
+  // Always use the hardcoded URL — clear any stale cached URL from localStorage
+  localStorage.removeItem("gtPickupScriptUrl");
+  let SCRIPT_URL = DEFAULT_SCRIPT_URL;
   let allRows = [];
   let sortCol = null;
   let sortDir = 1;
