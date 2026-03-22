@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GT Pickup Dashboard</title>
+<style>
+  :root {
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --gray: #6b7280;
+    --gray-light: #f9fafb;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f3f4f6;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; }
+  .header-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .header-sub { font-size: 13px; color: var(--text-muted); margin-top: 1px; }
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+
+  .btn {
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--gray-light); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1d4ed8; }
+  .last-refresh { font-size: 12px; color: var(--text-muted); }
+
+  /* ── LAYOUT ── */
+  .main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── SETUP BANNER ── */
+  .setup-banner {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .setup-banner.hidden { display: none; }
+  .setup-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .setup-content { flex: 1; }
+  .setup-content strong { font-size: 14px; color: #92400e; display: block; margin-bottom: 4px; }
+  .setup-content p { font-size: 13px; color: #78350f; line-height: 1.6; }
+  .setup-content code {
+    background: #fef3c7; padding: 1px 5px;
+    border-radius: 4px; font-family: monospace; font-size: 12px;
+  }
+  .url-input-row { display: flex; gap: 8px; margin-top: 10px; }
+  .url-input-row input {
+    flex: 1; padding: 7px 10px;
+    border: 1px solid #fcd34d; border-radius: 6px;
+    font-size: 13px; background: #fff; outline: none;
+  }
+  .url-input-row input:focus { border-color: var(--accent); }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--kpi-color, var(--accent));
+  }
+  .kpi.red   { --kpi-color: var(--red); }
+  .kpi.green { --kpi-color: var(--green); }
+  .kpi.amber { --kpi-color: var(--amber); }
+  .kpi-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--text-muted); margin-bottom: 6px;
+  }
+  .kpi-value { font-size: 30px; font-weight: 700; color: var(--text); line-height: 1; }
+  .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 24px 0 12px;
+  }
+  .section-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    margin-left: 8px;
+  }
+  .badge.red   { background: var(--red-light); color: var(--red); }
+  .badge.green { background: var(--green-light); color: var(--green); }
+  .badge.amber { background: var(--amber-light); color: var(--amber); }
+  .badge.blue  { background: var(--accent-light); color: var(--accent); }
+
+  /* ── FILTERS ── */
+  .filter-row {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  .filter-row label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  .filter-row select,
+  .filter-row input[type="text"] {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff; color: var(--text);
+    outline: none; cursor: pointer;
+  }
+  .filter-row select:focus,
+  .filter-row input:focus { border-color: var(--accent); }
+  .filter-sep { width: 1px; height: 24px; background: var(--border); }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: #f9fafb;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .4px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    cursor: pointer; user-select: none;
+  }
+  thead th:hover { background: #f1f5f9; color: var(--text); }
+  .sort-icon { font-size: 10px; margin-left: 4px; opacity: .5; }
+  tbody tr { border-bottom: 1px solid #f3f4f6; transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f8faff; }
+  tbody td { padding: 10px 14px; color: var(--text); vertical-align: middle; white-space: nowrap; }
+
+  tbody tr.row-delayed td:first-child { border-left: 3px solid var(--red); }
+  tbody tr.row-ontime  td:first-child { border-left: 3px solid var(--green); }
+  tbody tr.row-pending td:first-child { border-left: 3px solid #9ca3af; }
+
+  .delay-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+  }
+  .delay-chip.delayed { background: var(--red-light); color: var(--red); }
+  .delay-chip.ontime  { background: var(--green-light); color: var(--green); }
+  .delay-chip.pending { background: #f3f4f6; color: var(--gray); }
+
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+  .dot.red   { background: var(--red); }
+  .dot.green { background: var(--green); }
+  .dot.gray  { background: #9ca3af; }
+  .dot.amber { background: var(--amber); }
+
+  /* ── CHARTS ── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px; margin-bottom: 20px;
+  }
+  @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .chart-card h3 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+
+  .donut-wrap { display: flex; align-items: center; gap: 16px; }
+  .donut { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+  .donut svg { transform: rotate(-90deg); }
+  .donut-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%); text-align: center;
+  }
+  .donut-center .big { font-size: 18px; font-weight: 700; }
+  .donut-center .sm  { font-size: 10px; color: var(--text-muted); }
+  .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+  .legend-label { display: flex; align-items: center; color: var(--text-muted); }
+  .legend-val { font-weight: 600; color: var(--text); }
+
+  .bar-list { display: flex; flex-direction: column; gap: 10px; }
+  .bar-item { display: flex; flex-direction: column; gap: 3px; }
+  .bar-header { display: flex; justify-content: space-between; font-size: 12px; }
+  .bar-label { color: var(--text); font-weight: 500; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+  .bar-count { color: var(--text-muted); }
+  .bar-track { background: #f1f5f9; border-radius: 4px; height: 6px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 4px; background: var(--accent); transition: width .5s ease; }
+
+  /* ── LOADING / ALERTS ── */
+  .loading-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px; color: var(--text-muted);
+    gap: 12px; font-size: 14px;
+  }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
+  .alert {
+    padding: 12px 16px; border-radius: var(--radius);
+    font-size: 13px; margin-bottom: 16px; border: 1px solid;
+  }
+  .alert.error { background: var(--red-light); border-color: #fca5a5; color: #991b1b; }
+  .alert.info  { background: var(--accent-light); border-color: #93c5fd; color: #1e40af; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">
+      <svg viewBox="0 0 24 24">
+        <path d="M1 3h16v13H1z"/>
+        <path d="M16 8l5 3-5 3"/>
+        <path d="M8 13v4M12 13v4M4 13v4"/>
+      </svg>
+    </div>
+    <div>
+      <div class="header-title">GT Pickup Dashboard</div>
+      <div class="header-sub">Live from Google Sheets · GT Pikcup tab</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="last-refresh" id="last-refresh">Not yet loaded</span>
+    <button class="btn btn-primary" onclick="fetchData()">↻ Refresh</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ── SETUP BANNER ── -->
+  <div class="setup-banner" id="setup-banner">
+    <div class="setup-icon">⚙️</div>
+    <div class="setup-content">
+      <strong>Connect your Google Sheet</strong>
+      <p>Paste your Apps Script Web App URL below. Deploy <code>Code.gs</code> from your sheet (Extensions → Apps Script → Deploy → New Deployment → Web App → Anyone), then paste the URL here.</p>
+      <div class="url-input-row">
+        <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/AKfyc.../exec" />
+        <button class="btn btn-primary" onclick="saveUrl()">Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="alert-area"></div>
+
+  <!-- ── KPI CARDS ── -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Total Pickups</div>
+      <div class="kpi-value" id="k-total">–</div>
+      <div class="kpi-sub">Entries in sheet</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Delayed Pickups</div>
+      <div class="kpi-value" id="k-delayed">–</div>
+      <div class="kpi-sub">Pickup after initiated date</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">On-Time Pickups</div>
+      <div class="kpi-value" id="k-ontime">–</div>
+      <div class="kpi-sub">Pickup on or before initiated</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-label">Avg Delay (days)</div>
+      <div class="kpi-value" id="k-avgdelay">–</div>
+      <div class="kpi-sub">Among delayed entries</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Delivered</div>
+      <div class="kpi-value" id="k-delivered">–</div>
+      <div class="kpi-sub">With delivery date</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-label">PO Raised</div>
+      <div class="kpi-value" id="k-po">–</div>
+      <div class="kpi-sub">PO number present</div>
+    </div>
+  </div>
+
+  <!-- ── CHARTS ── -->
+  <div class="charts-grid" id="charts-grid" style="display:none">
+    <div class="chart-card">
+      <h3>Pickup Status</h3>
+      <div class="donut-wrap">
+        <div class="donut">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <circle cx="40" cy="40" r="28" fill="none" stroke="#f3f4f6" stroke-width="12"/>
+            <circle id="donut-delayed" cx="40" cy="40" r="28" fill="none" stroke="#dc2626" stroke-width="12" stroke-dasharray="0 176" stroke-linecap="round"/>
+            <circle id="donut-ontime"  cx="40" cy="40" r="28" fill="none" stroke="#16a34a" stroke-width="12" stroke-dasharray="0 176" stroke-linecap="round"/>
+            <circle id="donut-pending" cx="40" cy="40" r="28" fill="none" stroke="#d1d5db" stroke-width="12" stroke-dasharray="0 176" stroke-linecap="round"/>
+          </svg>
+          <div class="donut-center">
+            <div class="big" id="donut-pct">–</div>
+            <div class="sm">delayed</div>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="legend-item"><span class="legend-label"><span class="dot red"></span>Delayed</span><span class="legend-val" id="dl-delayed">–</span></div>
+          <div class="legend-item"><span class="legend-label"><span class="dot green"></span>On time</span><span class="legend-val" id="dl-ontime">–</span></div>
+          <div class="legend-item"><span class="legend-label"><span class="dot gray"></span>Pending</span><span class="legend-val" id="dl-pending">–</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3>Delivery Status</h3>
+      <div class="donut-wrap">
+        <div class="donut">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <circle cx="40" cy="40" r="28" fill="none" stroke="#f3f4f6" stroke-width="12"/>
+            <circle id="donut-del"   cx="40" cy="40" r="28" fill="none" stroke="#16a34a" stroke-width="12" stroke-dasharray="0 176" stroke-linecap="round"/>
+            <circle id="donut-undel" cx="40" cy="40" r="28" fill="none" stroke="#d1d5db" stroke-width="12" stroke-dasharray="0 176" stroke-linecap="round"/>
+          </svg>
+          <div class="donut-center">
+            <div class="big" id="donut-del-pct">–</div>
+            <div class="sm">done</div>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="legend-item"><span class="legend-label"><span class="dot green"></span>Delivered</span><span class="legend-val" id="dl-delivered">–</span></div>
+          <div class="legend-item"><span class="legend-label"><span class="dot gray"></span>Pending</span><span class="legend-val" id="dl-delpending">–</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3>Pickups by Warehouse</h3>
+      <div class="bar-list" id="wh-bar-list"><div class="empty-state">No data</div></div>
+    </div>
+  </div>
+
+  <!-- ── MAIN TABLE ── -->
+  <div class="section-header">
+    <div class="section-title">
+      All Pickup Records
+      <span class="badge blue" id="row-count-badge">–</span>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <label>Warehouse</label>
+    <select id="filter-wh" onchange="applyFilters()"><option value="">All</option></select>
+    <div class="filter-sep"></div>
+    <label>Pickup Status</label>
+    <select id="filter-status" onchange="applyFilters()">
+      <option value="">All</option>
+      <option value="delayed">Delayed</option>
+      <option value="ontime">On Time</option>
+      <option value="pending">Pending</option>
+    </select>
+    <div class="filter-sep"></div>
+    <label>Search</label>
+    <input type="text" id="filter-search" placeholder="Customer, Bill no, LR…" oninput="applyFilters()" style="width:180px">
+    <div style="margin-left:auto">
+      <button class="btn" onclick="clearFilters()">✕ Clear</button>
+    </div>
+  </div>
+
+  <div class="table-wrap" id="table-wrap">
+    <div class="loading-state" id="loading-state">
+      Connect your sheet above to load data
+    </div>
+    <table id="main-table" style="display:none">
+      <thead>
+        <tr>
+          <th onclick="sortBy('Customer Name')">Customer <span class="sort-icon">⇅</span></th>
+          <th onclick="sortBy('WH Name')">Warehouse <span class="sort-icon">⇅</span></th>
+          <th onclick="sortBy('Purchase bill number')">Bill No <span class="sort-icon">⇅</span></th>
+          <th onclick="sortBy('Mail Receievd  Date')">Mail Received <span class="sort-icon">⇅</span></th>
+          <th onclick="sortBy('Intatied pickup Date')">Initiated Date <span class="sort-icon">⇅</span></th>
+          <th onclick="sortBy('Pickup Date')">Pickup Date <span class="sort-icon">⇅</span></th>
+          <th>Delay</th>
+          <th onclick="sortBy('Delivred Date')">Delivered <span class="sort-icon">⇅</span></th>
+          <th>PO Status</th>
+          <th>PR Status</th>
+          <th>LR Number</th>
+          <th>Remark</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  let SCRIPT_URL = localStorage.getItem("gtPickupScriptUrl") || "";
+  let allRows = [];
+  let sortCol = null;
+  let sortDir = 1;
+
+  window.onload = () => {
+    if (SCRIPT_URL) {
+      document.getElementById("setup-banner").classList.add("hidden");
+      document.getElementById("script-url-input").value = SCRIPT_URL;
+      fetchData();
+    }
+  };
+
+  function saveUrl() {
+    const v = document.getElementById("script-url-input").value.trim();
+    if (!v || !v.startsWith("https://")) {
+      showAlert("Please enter a valid https:// URL", "error"); return;
+    }
+    SCRIPT_URL = v;
+    localStorage.setItem("gtPickupScriptUrl", v);
+    document.getElementById("setup-banner").classList.add("hidden");
+    fetchData();
+  }
+
+  async function fetchData() {
+    if (!SCRIPT_URL) { return; }
+    showLoading("Loading data from Google Sheets…");
+    clearAlert();
+    try {
+      const res = await fetch(SCRIPT_URL + "?t=" + Date.now());
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      allRows = data.rows || [];
+      renderAll(data.summary || {});
+      populateFilters();
+      document.getElementById("last-refresh").textContent = "Refreshed " + new Date().toLocaleTimeString();
+    } catch (err) {
+      showAlert("Failed to load: " + err.message + ". Make sure your Apps Script is deployed with access set to 'Anyone'.", "error");
+      showLoading("Error loading data.");
+    }
+  }
+
+  function renderAll(summary) {
+    document.getElementById("k-total").textContent    = summary.totalRows ?? 0;
+    document.getElementById("k-delayed").textContent  = summary.pickupDelayed ?? 0;
+    document.getElementById("k-ontime").textContent   = summary.pickupOnTime ?? 0;
+    document.getElementById("k-avgdelay").textContent = (summary.avgDelayDays ?? 0) + "d";
+    document.getElementById("k-delivered").textContent = summary.deliveredCount ?? 0;
+    document.getElementById("k-po").textContent       = summary.poRaised ?? 0;
+
+    const circ = 2 * Math.PI * 28;
+    const total = (summary.pickupDelayed||0) + (summary.pickupOnTime||0) + (summary.pickupPending||0);
+    const dPct = total ? (summary.pickupDelayed||0)/total : 0;
+    const oPct = total ? (summary.pickupOnTime||0)/total : 0;
+    const pPct = total ? (summary.pickupPending||0)/total : 0;
+    const dLen = dPct * circ, oLen = oPct * circ, pLen = pPct * circ;
+
+    document.getElementById("donut-delayed").setAttribute("stroke-dasharray", dLen + " " + (circ - dLen));
+    document.getElementById("donut-ontime").setAttribute("stroke-dasharray", oLen + " " + (circ - oLen));
+    document.getElementById("donut-ontime").setAttribute("stroke-dashoffset", -dLen);
+    document.getElementById("donut-pending").setAttribute("stroke-dasharray", pLen + " " + (circ - pLen));
+    document.getElementById("donut-pending").setAttribute("stroke-dashoffset", -(dLen + oLen));
+    document.getElementById("donut-pct").textContent = Math.round(dPct * 100) + "%";
+    document.getElementById("dl-delayed").textContent = summary.pickupDelayed || 0;
+    document.getElementById("dl-ontime").textContent  = summary.pickupOnTime  || 0;
+    document.getElementById("dl-pending").textContent = summary.pickupPending || 0;
+
+    const dtotal = (summary.deliveredCount||0) + (summary.deliveryPending||0);
+    const dPctD = dtotal ? (summary.deliveredCount||0)/dtotal : 0;
+    const delLen = dPctD * circ;
+    document.getElementById("donut-del").setAttribute("stroke-dasharray", delLen + " " + (circ - delLen));
+    document.getElementById("donut-undel").setAttribute("stroke-dasharray", (circ - delLen) + " " + delLen);
+    document.getElementById("donut-undel").setAttribute("stroke-dashoffset", -delLen);
+    document.getElementById("donut-del-pct").textContent = Math.round(dPctD * 100) + "%";
+    document.getElementById("dl-delivered").textContent  = summary.deliveredCount  || 0;
+    document.getElementById("dl-delpending").textContent = summary.deliveryPending || 0;
+
+    const wh = summary.warehouseCounts || {};
+    const whKeys = Object.keys(wh).sort((a,b) => wh[b]-wh[a]);
+    const maxWh = whKeys.length ? wh[whKeys[0]] : 1;
+    document.getElementById("wh-bar-list").innerHTML = whKeys.length
+      ? whKeys.map(k => `
+          <div class="bar-item">
+            <div class="bar-header">
+              <span class="bar-label">${k}</span>
+              <span class="bar-count">${wh[k]}</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${Math.round((wh[k]/maxWh)*100)}%"></div>
+            </div>
+          </div>`).join("")
+      : "<div class='empty-state'>No data</div>";
+
+    document.getElementById("charts-grid").style.display = "";
+    applyFilters();
+  }
+
+  function populateFilters() {
+    const whs = [...new Set(allRows.map(r => r["WH Name"]).filter(Boolean))].sort();
+    const sel = document.getElementById("filter-wh");
+    sel.innerHTML = '<option value="">All</option>' + whs.map(w => `<option value="${w}">${w}</option>`).join("");
+  }
+
+  function getPickupStatus(row) {
+    const initiated = parseDate(row["Intatied pickup Date"]);
+    const pickup    = parseDate(row["Pickup Date"]);
+    if (!initiated || !pickup) return "pending";
+    return (pickup - initiated) / 86400000 > 0 ? "delayed" : "ontime";
+  }
+
+  function parseDate(str) {
+    if (!str || str.trim() === "" || str.trim().toUpperCase() === "NA") return null;
+    const monMap = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    const m1 = str.match(/^(\d{1,2})[\/\-]([A-Za-z]{3})[\/\-](\d{4})$/);
+    if (m1) return new Date(+m1[3], monMap[m1[2].toLowerCase()], +m1[1]);
+    const m2 = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (m2) { const y = m2[3].length===2 ? 2000+ +m2[3] : +m2[3]; return new Date(y, +m2[2]-1, +m2[1]); }
+    const d = new Date(str); return isNaN(d) ? null : d;
+  }
+
+  function applyFilters() {
+    const whF   = document.getElementById("filter-wh").value;
+    const stF   = document.getElementById("filter-status").value;
+    const srchF = document.getElementById("filter-search").value.toLowerCase();
+
+    let rows = allRows.filter(r => {
+      if (whF && r["WH Name"] !== whF) return false;
+      if (stF && getPickupStatus(r) !== stF) return false;
+      if (srchF) {
+        const hay = [r["Customer Name"],r["Purchase bill number"],r["LR Number"],r["Transport"]].join(" ").toLowerCase();
+        if (!hay.includes(srchF)) return false;
+      }
+      return true;
+    });
+
+    if (sortCol) {
+      rows.sort((a, b) => {
+        const av = a[sortCol]||"", bv = b[sortCol]||"";
+        const da = parseDate(av), db = parseDate(bv);
+        if (da && db) return (da - db) * sortDir;
+        return av.localeCompare(bv) * sortDir;
+      });
+    }
+
+    renderTable(rows);
+    document.getElementById("row-count-badge").textContent = rows.length;
+  }
+
+  function renderTable(rows) {
+    document.getElementById("main-table").style.display = "";
+    document.getElementById("loading-state").style.display = "none";
+    const tbody = document.getElementById("table-body");
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state">No matching records</div></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const status = getPickupStatus(r);
+      const initiated = parseDate(r["Intatied pickup Date"]);
+      const pickup    = parseDate(r["Pickup Date"]);
+      const diff      = (initiated && pickup) ? Math.round((pickup - initiated) / 86400000) : null;
+
+      const chipHtml = status === "delayed"
+        ? `<span class="delay-chip delayed">▲ ${diff}d late</span>`
+        : status === "ontime"
+        ? `<span class="delay-chip ontime">✓ On time</span>`
+        : `<span class="delay-chip pending">– Pending</span>`;
+
+      const delivered = r["Delivred Date"] && r["Delivred Date"].toUpperCase() !== "NA" ? r["Delivred Date"] : "";
+      const poOk = r["PO Staus"] && r["PO Staus"].toUpperCase() !== "NA" && r["PO Staus"] !== "";
+      const prOk = r["PR Staus"] && r["PR Staus"].toUpperCase() !== "NA" && r["PR Staus"] !== "";
+
+      return `<tr class="row-${status}">
+        <td><strong>${r["Customer Name"]||"–"}</strong></td>
+        <td>${r["WH Name"]||"–"}</td>
+        <td style="font-family:monospace;font-size:12px">${r["Purchase bill number"]||"–"}</td>
+        <td>${r["Mail Receievd  Date"]||"–"}</td>
+        <td>${r["Intatied pickup Date"]||"–"}</td>
+        <td>${r["Pickup Date"]&&r["Pickup Date"].toUpperCase()!=="NA"?r["Pickup Date"]:"–"}</td>
+        <td>${chipHtml}</td>
+        <td>${delivered||'<span style="color:var(--text-muted)">Pending</span>'}</td>
+        <td>${poOk?`<span class="dot green"></span>${r["PO Staus"]}`:`<span class="dot gray"></span>–`}</td>
+        <td>${prOk?`<span class="dot green"></span>${r["PR Staus"]}`:`<span class="dot gray"></span>–`}</td>
+        <td style="font-family:monospace;font-size:12px">${r["LR Number"]||"–"}</td>
+        <td style="max-width:160px;white-space:normal;font-size:12px;color:var(--text-muted)">${r["Remark"]||""}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  function sortBy(col) {
+    if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+    applyFilters();
+  }
+
+  function clearFilters() {
+    document.getElementById("filter-wh").value = "";
+    document.getElementById("filter-status").value = "";
+    document.getElementById("filter-search").value = "";
+    applyFilters();
+  }
+
+  function showLoading(msg) {
+    document.getElementById("loading-state").style.display = "flex";
+    document.getElementById("loading-state").innerHTML = msg.includes("Loading")
+      ? `<div class="spinner"></div>${msg}`
+      : msg;
+    document.getElementById("main-table").style.display = "none";
+  }
+
+  function showAlert(msg, type) {
+    document.getElementById("alert-area").innerHTML = `<div class="alert ${type}">${msg}</div>`;
+  }
+  function clearAlert() {
+    document.getElementById("alert-area").innerHTML = "";
+  }
+</script>
+</body>
+</html>
