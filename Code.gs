@@ -5,27 +5,28 @@
 // 1. Open your Google Sheet (the one with "GT Pikcup" tab)
 // 2. Go to Extensions > Apps Script
 // 3. Delete existing code, paste this entire file
-// 4. Click "Deploy" > "New deployment"
-//    - Type: Web App
-//    - Execute as: Me
-//    - Who has access: Anyone
-// 5. Click "Deploy" → copy the Web App URL and update dashboard
+// 4. Click "Deploy" > "Manage deployments" > Edit > New version > Deploy
 // ============================================================
 
 const SHEET_NAME = "GT Pikcup";
 
 function doGet(e) {
-  const output = buildResponse();
-  return output;
+  return buildResponse();
 }
 
 function buildResponse() {
   try {
-    const ss    = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEET_NAME);
+    const ss     = SpreadsheetApp.getActiveSpreadsheet();
+    const sheets = ss.getSheets();
+
+    // Find sheet by trimmed name (handles accidental leading/trailing spaces)
+    const sheet  = sheets.find(s => s.getName().trim() === SHEET_NAME.trim());
 
     if (!sheet) {
-      return jsonResponse({ error: "Sheet not found: " + SHEET_NAME + ". Available sheets: " + ss.getSheets().map(s => s.getName()).join(", ") });
+      return jsonResponse({
+        error: "Sheet not found: '" + SHEET_NAME + "'. Available sheets: " +
+               sheets.map(s => "'" + s.getName() + "'").join(", ")
+      });
     }
 
     const data = sheet.getDataRange().getValues();
@@ -54,8 +55,8 @@ function buildResponse() {
 
     // Sort rows by Mail Received Date descending (latest first)
     rows.sort((a, b) => {
-      const da = parseDate(a["Mail Receievd  Date"] || a["Mail Received Date"] || "");
-      const db = parseDate(b["Mail Receievd  Date"] || b["Mail Received Date"] || "");
+      const da = parseDate(a["Mail Receievd  Date"] || "");
+      const db = parseDate(b["Mail Receievd  Date"] || "");
       if (da && db) return db - da;
       if (da) return -1;
       if (db) return 1;
@@ -122,7 +123,7 @@ function buildSummary(rows) {
 }
 
 function parseDate(str) {
-  if (!str || str === "" || str.toString().toUpperCase() === "NA") return null;
+  if (!str || str.toString().trim() === "" || str.toString().toUpperCase() === "NA") return null;
   const d = new Date(str);
   if (!isNaN(d.getTime())) return d;
   return null;

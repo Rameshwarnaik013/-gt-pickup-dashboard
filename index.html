@@ -291,6 +291,39 @@
   }
   .alert.error { background: var(--red-light); border-color: #fca5a5; color: #991b1b; }
   .alert.info  { background: var(--accent-light); border-color: #93c5fd; color: #1e40af; }
+
+  /* ── SKELETON ── */
+  @keyframes shimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position:  600px 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 600px 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+  }
+  .skeleton-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px; margin-bottom: 20px;
+  }
+  .skeleton-kpi {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px;
+    box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px;
+  }
+  .skeleton-row { display: flex; flex-direction: column; gap: 6px; }
+  .sk-line { height: 12px; border-radius: 4px; }
+  .sk-val  { height: 28px; width: 60%; border-radius: 4px; }
+  .skeleton-table-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr 80px;
+    gap: 14px; padding: 12px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    align-items: center;
+  }
+  .sk-cell { height: 12px; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -323,7 +356,7 @@
   <div id="alert-area"></div>
 
   <!-- ── KPI CARDS ── -->
-  <div class="kpi-grid">
+  <div class="kpi-grid" id="kpi-grid" style="display:none">
     <div class="kpi">
       <div class="kpi-label">Total Pickups</div>
       <div class="kpi-value" id="k-total">–</div>
@@ -435,9 +468,29 @@
     </div>
   </div>
 
+  <div id="skeleton-kpis" class="skeleton-kpi-grid">
+    <div class="skeleton-kpi"><div class="sk-line skeleton" style="width:60%"></div><div class="sk-val skeleton"></div><div class="sk-line skeleton" style="width:40%"></div></div>
+    <div class="skeleton-kpi"><div class="sk-line skeleton" style="width:60%"></div><div class="sk-val skeleton"></div><div class="sk-line skeleton" style="width:40%"></div></div>
+    <div class="skeleton-kpi"><div class="sk-line skeleton" style="width:60%"></div><div class="sk-val skeleton"></div><div class="sk-line skeleton" style="width:40%"></div></div>
+    <div class="skeleton-kpi"><div class="sk-line skeleton" style="width:60%"></div><div class="sk-val skeleton"></div><div class="sk-line skeleton" style="width:40%"></div></div>
+    <div class="skeleton-kpi"><div class="sk-line skeleton" style="width:60%"></div><div class="sk-val skeleton"></div><div class="sk-line skeleton" style="width:40%"></div></div>
+    <div class="skeleton-kpi"><div class="sk-line skeleton" style="width:60%"></div><div class="sk-val skeleton"></div><div class="sk-line skeleton" style="width:40%"></div></div>
+  </div>
+
   <div class="table-wrap" id="table-wrap">
-    <div class="loading-state" id="loading-state">
-      Loading data from Google Sheets…
+    <div id="skeleton-table">
+      <div class="skeleton-table-row" style="border-bottom:2px solid var(--border)">
+        <div class="sk-cell skeleton" style="width:80%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:60%"></div>
+      </div>
+      <div class="skeleton-table-row"><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:70%"></div><div class="sk-cell skeleton" style="width:80%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:50%"></div></div>
+      <div class="skeleton-table-row"><div class="sk-cell skeleton" style="width:90%"></div><div class="sk-cell skeleton" style="width:60%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:70%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div></div>
+      <div class="skeleton-table-row"><div class="sk-cell skeleton" style="width:75%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:85%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:65%"></div><div class="sk-cell skeleton"></div></div>
+      <div class="skeleton-table-row"><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:80%"></div><div class="sk-cell skeleton" style="width:60%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:55%"></div></div>
+      <div class="skeleton-table-row"><div class="sk-cell skeleton" style="width:85%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:70%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div></div>
+      <div class="skeleton-table-row"><div class="sk-cell skeleton" style="width:70%"></div><div class="sk-cell skeleton" style="width:90%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:80%"></div><div class="sk-cell skeleton"></div><div class="sk-cell skeleton" style="width:60%"></div></div>
+    </div>
+    <div class="loading-state" id="loading-state" style="display:none">
+      <div class="spinner"></div> Loading data…
     </div>
     <table id="main-table" style="display:none">
       <thead>
@@ -470,9 +523,6 @@
   let sortDir = 1;
 
   window.onload = () => {
-    // Always hide the setup banner since URL is pre-configured
-    document.getElementById("setup-banner").classList.add("hidden");
-    document.getElementById("script-url-input").value = SCRIPT_URL;
     fetchData();
   };
 
@@ -480,20 +530,29 @@
 
   async function fetchData() {
     if (!SCRIPT_URL) { return; }
-    showLoading("Loading data from Google Sheets…");
     clearAlert();
+    // Show skeleton while loading
+    document.getElementById("skeleton-kpis").style.display = "";
+    document.getElementById("skeleton-table").style.display = "";
+    document.getElementById("main-table").style.display = "none";
+    document.getElementById("kpi-grid").style.display = "none";
     try {
       const res = await fetch(SCRIPT_URL + "?t=" + Date.now());
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       allRows = data.rows || [];
+      // Hide skeleton, show real content
+      document.getElementById("skeleton-kpis").style.display = "none";
+      document.getElementById("skeleton-table").style.display = "none";
+      document.getElementById("kpi-grid").style.display = "";
       renderAll(data.summary || {});
       populateFilters();
       document.getElementById("last-refresh").textContent = "Refreshed " + new Date().toLocaleTimeString();
     } catch (err) {
-      showAlert("Failed to load: " + err.message + ". Make sure your Apps Script is deployed with access set to 'Anyone'.", "error");
-      showLoading("Error loading data.");
+      document.getElementById("skeleton-kpis").style.display = "none";
+      document.getElementById("skeleton-table").style.display = "none";
+      showAlert("❌ Failed to load data: " + err.message + " &nbsp;<button class='btn' onclick='fetchData()' style='margin-left:8px'>↻ Retry</button>", "error");
     }
   }
 
