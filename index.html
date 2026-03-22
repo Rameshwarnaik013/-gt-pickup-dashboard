@@ -474,17 +474,17 @@
 </div>
 
 <script>
-  let SCRIPT_URL = localStorage.getItem("gtPickupScriptUrl") || "";
+  const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyn8iIF8tJuP0v1N_RFW37lUxdOE7a9xnbmbHM09AFukBchd6MfKakap6LSSVNiBHy5/exec";
+  let SCRIPT_URL = localStorage.getItem("gtPickupScriptUrl") || DEFAULT_SCRIPT_URL;
   let allRows = [];
   let sortCol = null;
   let sortDir = 1;
 
   window.onload = () => {
-    if (SCRIPT_URL) {
-      document.getElementById("setup-banner").classList.add("hidden");
-      document.getElementById("script-url-input").value = SCRIPT_URL;
-      fetchData();
-    }
+    // Always hide the setup banner since URL is pre-configured
+    document.getElementById("setup-banner").classList.add("hidden");
+    document.getElementById("script-url-input").value = SCRIPT_URL;
+    fetchData();
   };
 
   function saveUrl() {
