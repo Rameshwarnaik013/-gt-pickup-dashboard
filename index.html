@@ -318,18 +318,7 @@
 
 <div class="main">
 
-  <!-- ── SETUP BANNER ── -->
-  <div class="setup-banner" id="setup-banner">
-    <div class="setup-icon">⚙️</div>
-    <div class="setup-content">
-      <strong>Connect your Google Sheet</strong>
-      <p>Paste your Apps Script Web App URL below. Deploy <code>Code.gs</code> from your sheet (Extensions → Apps Script → Deploy → New Deployment → Web App → Anyone), then paste the URL here.</p>
-      <div class="url-input-row">
-        <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/AKfyc.../exec" />
-        <button class="btn btn-primary" onclick="saveUrl()">Connect</button>
-      </div>
-    </div>
-  </div>
+
 
   <div id="alert-area"></div>
 
@@ -448,7 +437,7 @@
 
   <div class="table-wrap" id="table-wrap">
     <div class="loading-state" id="loading-state">
-      Connect your sheet above to load data
+      Loading data from Google Sheets…
     </div>
     <table id="main-table" style="display:none">
       <thead>
@@ -487,16 +476,7 @@
     fetchData();
   };
 
-  function saveUrl() {
-    const v = document.getElementById("script-url-input").value.trim();
-    if (!v || !v.startsWith("https://")) {
-      showAlert("Please enter a valid https:// URL", "error"); return;
-    }
-    SCRIPT_URL = v;
-    localStorage.setItem("gtPickupScriptUrl", v);
-    document.getElementById("setup-banner").classList.add("hidden");
-    fetchData();
-  }
+
 
   async function fetchData() {
     if (!SCRIPT_URL) { return; }

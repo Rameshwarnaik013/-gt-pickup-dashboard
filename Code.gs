@@ -1,22 +1,20 @@
 // ============================================================
 // GT PICKUP DASHBOARD — Google Apps Script (Code.gs)
 // ============================================================
-// HOW TO DEPLOY:
-// 1. Open your Google Sheet
+// HOW TO USE:
+// 1. Open your Google Sheet (the one with "GT Pikcup" tab)
 // 2. Go to Extensions > Apps Script
-// 3. Delete any existing code, paste this entire file
+// 3. Delete existing code, paste this entire file
 // 4. Click "Deploy" > "New deployment"
 //    - Type: Web App
 //    - Execute as: Me
 //    - Who has access: Anyone
-// 5. Click "Deploy" → copy the Web App URL
-// 6. On your dashboard, paste that URL into the setup banner
+// 5. Click "Deploy" → copy the Web App URL and update dashboard
 // ============================================================
 
 const SHEET_NAME = "GT Pikcup";
 
 function doGet(e) {
-  // Allow CORS so the browser dashboard can call this
   const output = buildResponse();
   return output;
 }
@@ -27,7 +25,7 @@ function buildResponse() {
     const sheet = ss.getSheetByName(SHEET_NAME);
 
     if (!sheet) {
-      return jsonResponse({ error: "Sheet not found: " + SHEET_NAME });
+      return jsonResponse({ error: "Sheet not found: " + SHEET_NAME + ". Available sheets: " + ss.getSheets().map(s => s.getName()).join(", ") });
     }
 
     const data = sheet.getDataRange().getValues();
@@ -54,6 +52,16 @@ function buildResponse() {
       rows.push(obj);
     }
 
+    // Sort rows by Mail Received Date descending (latest first)
+    rows.sort((a, b) => {
+      const da = parseDate(a["Mail Receievd  Date"] || a["Mail Received Date"] || "");
+      const db = parseDate(b["Mail Receievd  Date"] || b["Mail Received Date"] || "");
+      if (da && db) return db - da;
+      if (da) return -1;
+      if (db) return 1;
+      return 0;
+    });
+
     return jsonResponse({ rows, headers, summary: buildSummary(rows) });
 
   } catch (err) {
@@ -62,16 +70,16 @@ function buildResponse() {
 }
 
 function buildSummary(rows) {
-  let totalRows      = rows.length;
-  let pickupDelayed  = 0;
-  let pickupOnTime   = 0;
-  let pickupPending  = 0;
-  let deliveredCount = 0;
+  let totalRows       = rows.length;
+  let pickupDelayed   = 0;
+  let pickupOnTime    = 0;
+  let pickupPending   = 0;
+  let deliveredCount  = 0;
   let deliveryPending = 0;
-  let poRaised       = 0;
-  let prRaised       = 0;
-  let totalDelayDays = 0;
-  let delayedCount   = 0;
+  let poRaised        = 0;
+  let prRaised        = 0;
+  let totalDelayDays  = 0;
+  let delayedCount    = 0;
   const warehouseCounts = {};
 
   rows.forEach(row => {
@@ -114,7 +122,7 @@ function buildSummary(rows) {
 }
 
 function parseDate(str) {
-  if (!str || str === "" || str.toUpperCase() === "NA") return null;
+  if (!str || str === "" || str.toString().toUpperCase() === "NA") return null;
   const d = new Date(str);
   if (!isNaN(d.getTime())) return d;
   return null;
