@@ -502,6 +502,7 @@
           <th onclick="sortBy('Intatied pickup Date')">Initiated Date <span class="sort-icon">⇅</span></th>
           <th onclick="sortBy('Pickup Date')">Pickup Date <span class="sort-icon">⇅</span></th>
           <th>Delay</th>
+          <th>Issues & Accountability</th>
           <th onclick="sortBy('Delivred Date')">Delivered <span class="sort-icon">⇅</span></th>
           <th>PO Status</th>
           <th>PR Status</th>
@@ -670,7 +671,7 @@
     const tbody = document.getElementById("table-body");
 
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state">No matching records</div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="13"><div class="empty-state">No matching records</div></td></tr>';
       return;
     }
 
@@ -686,11 +687,37 @@
         ? `<span class="delay-chip ontime">✓ On time</span>`
         : `<span class="delay-chip pending">– Pending</span>`;
 
-      const delivered = r["Delivred Date"] && r["Delivred Date"].toUpperCase() !== "NA" ? r["Delivred Date"] : "";
+      let issues = [];
+      const mailDate = parseDate(r["Mail Receievd  Date"]);
+      const arrivedWh = parseDate(r["Arrived at WH Date"]);
+      const arrived = parseDate(r["Arrived Date"]) || arrivedWh;
+      const delivered = parseDate(r["Delivred Date"]) || parseDate(r["Delivered Date"]);
+      const inward = parseDate(r["Inward Date"]);
+
+      if (pickup && mailDate && (pickup - mailDate) / 86400000 > 3) {
+        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (&gt;3d from Mail) - Acc: Sukanth</div>`);
+      }
+      if (pickup && initiated && (pickup - initiated) / 86400000 > 3) {
+        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (&gt;3d from Initiated) - Acc: Niranjan</div>`);
+      }
+      if (arrivedWh && pickup && (arrivedWh - pickup) / 86400000 > 10) {
+        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (&gt;10d to WH) - Acc: Logistics Team</div>`);
+      }
+      if (delivered && arrived && (delivered - arrived) / 86400000 > 2) {
+        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (acconting by WH) - Acc: WH Team</div>`);
+      }
+      if (inward && delivered && (inward - delivered) / 86400000 > 3) {
+        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (Inward &gt;3d) - Acc: WH Team</div>`);
+      }
+      const issuesHtml = issues.length > 0 ? issues.join("") : `<span style="color:var(--text-muted);font-size:12px;">None</span>`;
+      
+      const rowClass = (issues.length > 0 || status === "delayed") ? "delayed" : status;
+
+      const compDelivered = r["Delivred Date"] && r["Delivred Date"].toUpperCase() !== "NA" ? r["Delivred Date"] : "";
       const poOk = r["PO Staus"] && r["PO Staus"].toUpperCase() !== "NA" && r["PO Staus"] !== "";
       const prOk = r["PR Staus"] && r["PR Staus"].toUpperCase() !== "NA" && r["PR Staus"] !== "";
 
-      return `<tr class="row-${status}">
+      return `<tr class="row-${rowClass}">
         <td><strong>${r["Customer Name"]||"–"}</strong></td>
         <td>${r["WH Name"]||"–"}</td>
         <td style="font-family:monospace;font-size:12px">${r["Purchase bill number"]||"–"}</td>
@@ -698,7 +725,8 @@
         <td>${r["Intatied pickup Date"]||"–"}</td>
         <td>${r["Pickup Date"]&&r["Pickup Date"].toUpperCase()!=="NA"?r["Pickup Date"]:"–"}</td>
         <td>${chipHtml}</td>
-        <td>${delivered||'<span style="color:var(--text-muted)">Pending</span>'}</td>
+        <td>${issuesHtml}</td>
+        <td>${compDelivered||'<span style="color:var(--text-muted)">Pending</span>'}</td>
         <td>${poOk?`<span class="dot green"></span>${r["PO Staus"]}`:`<span class="dot gray"></span>–`}</td>
         <td>${prOk?`<span class="dot green"></span>${r["PR Staus"]}`:`<span class="dot gray"></span>–`}</td>
         <td style="font-family:monospace;font-size:12px">${r["LR Number"]||"–"}</td>
