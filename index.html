@@ -439,6 +439,32 @@
       <h3>Pickups by Warehouse</h3>
       <div class="bar-list" id="wh-bar-list"><div class="empty-state">No data</div></div>
     </div>
+    <div class="chart-card">
+      <h3>Accountability Breakup</h3>
+      <div class="bar-list" id="acc-bar-list"><div class="empty-state">No data</div></div>
+    </div>
+    <div class="chart-card">
+      <h3>Bill Status Breakup</h3>
+      <div class="donut-wrap">
+        <div class="donut">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <circle cx="40" cy="40" r="28" fill="none" stroke="#f3f4f6" stroke-width="12"/>
+            <circle id="donut-bill-delayed" cx="40" cy="40" r="28" fill="none" stroke="#dc2626" stroke-width="12" stroke-dasharray="0 176" stroke-linecap="round"/>
+            <circle id="donut-bill-ontime"  cx="40" cy="40" r="28" fill="none" stroke="#16a34a" stroke-width="12" stroke-dasharray="0 176" stroke-linecap="round"/>
+            <circle id="donut-bill-pending" cx="40" cy="40" r="28" fill="none" stroke="#d1d5db" stroke-width="12" stroke-dasharray="0 176" stroke-linecap="round"/>
+          </svg>
+          <div class="donut-center">
+            <div class="big" id="donut-bill-pct">–</div>
+            <div class="sm">delayed</div>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="legend-item"><span class="legend-label"><span class="dot red"></span>Delayed</span><span class="legend-val" id="bill-delayed">–</span></div>
+          <div class="legend-item"><span class="legend-label"><span class="dot green"></span>On time</span><span class="legend-val" id="bill-ontime">–</span></div>
+          <div class="legend-item"><span class="legend-label"><span class="dot gray"></span>Pending</span><span class="legend-val" id="bill-pending">–</span></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── MAIN TABLE ── -->
@@ -459,6 +485,16 @@
       <option value="delayed">Delayed</option>
       <option value="ontime">On Time</option>
       <option value="pending">Pending</option>
+    </select>
+    <div class="filter-sep"></div>
+    <label>Delay Condition</label>
+    <select id="filter-condition" onchange="applyFilters()">
+      <option value="">All Conditions</option>
+      <option value="c1">Pickup >3d from Mail (Sukanth)</option>
+      <option value="c2">Pickup >3d from Initiated (Niranjan)</option>
+      <option value="c3">Transit to WH >10d (Logistics)</option>
+      <option value="c4">Accounting Delay >2d (WH Team)</option>
+      <option value="c5">Inward Delay >3d (WH Team)</option>
     </select>
     <div class="filter-sep"></div>
     <label>Search</label>
@@ -502,7 +538,8 @@
           <th onclick="sortBy('Intatied pickup Date')">Initiated Date <span class="sort-icon">⇅</span></th>
           <th onclick="sortBy('Pickup Date')">Pickup Date <span class="sort-icon">⇅</span></th>
           <th>Delay</th>
-          <th>Issues & Accountability</th>
+          <th>Issues</th>
+          <th>Accountable Person</th>
           <th onclick="sortBy('Delivred Date')">Delivered <span class="sort-icon">⇅</span></th>
           <th>PO Status</th>
           <th>PR Status</th>
@@ -611,6 +648,52 @@
       : "<div class='empty-state'>No data</div>";
 
     document.getElementById("charts-grid").style.display = "";
+
+    // ── Accountability Breakup ──
+    const accCounts = {};
+    const billStatuses = { delayed: 0, ontime: 0, pending: 0 };
+    
+    allRows.forEach(r => {
+      const issues = getRowIssues(r);
+      issues.forEach(iss => {
+        accCounts[iss.acc] = (accCounts[iss.acc] || 0) + 1;
+      });
+      const st = getPickupStatus(r);
+      billStatuses[st]++;
+    });
+
+    const accKeys = Object.keys(accCounts).sort((a,b) => accCounts[b]-accCounts[a]);
+    const maxAcc = accKeys.length ? accCounts[accKeys[0]] : 1;
+    document.getElementById("acc-bar-list").innerHTML = accKeys.length
+      ? accKeys.map(k => `
+          <div class="bar-item">
+            <div class="bar-header">
+              <span class="bar-label">${k}</span>
+              <span class="bar-count">${accCounts[k]}</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${Math.round((accCounts[k]/maxAcc)*100)}%; background:var(--red);"></div>
+            </div>
+          </div>`).join("")
+      : "<div class='empty-state'>No issues</div>";
+
+    // ── Bill Status Breakup ──
+    const bTotal = billStatuses.delayed + billStatuses.ontime + billStatuses.pending;
+    const bDPct = bTotal ? billStatuses.delayed/bTotal : 0;
+    const bOPct = bTotal ? billStatuses.ontime/bTotal : 0;
+    const bPPct = bTotal ? billStatuses.pending/bTotal : 0;
+    const bDLen = bDPct * circ, bOLen = bOPct * circ, bPLen = bPPct * circ;
+
+    document.getElementById("donut-bill-delayed").setAttribute("stroke-dasharray", bDLen + " " + (circ - bDLen));
+    document.getElementById("donut-bill-ontime").setAttribute("stroke-dasharray", bOLen + " " + (circ - bOLen));
+    document.getElementById("donut-bill-ontime").setAttribute("stroke-dashoffset", -bDLen);
+    document.getElementById("donut-bill-pending").setAttribute("stroke-dasharray", bPLen + " " + (circ - bPLen));
+    document.getElementById("donut-bill-pending").setAttribute("stroke-dashoffset", -(bDLen + bOLen));
+    document.getElementById("donut-bill-pct").textContent = Math.round(bDPct * 100) + "%";
+    document.getElementById("bill-delayed").textContent = billStatuses.delayed;
+    document.getElementById("bill-ontime").textContent  = billStatuses.ontime;
+    document.getElementById("bill-pending").textContent = billStatuses.pending;
+
     applyFilters();
   }
 
@@ -640,11 +723,16 @@
   function applyFilters() {
     const whF   = document.getElementById("filter-wh").value;
     const stF   = document.getElementById("filter-status").value;
+    const condF = document.getElementById("filter-condition").value;
     const srchF = document.getElementById("filter-search").value.toLowerCase();
 
     let rows = allRows.filter(r => {
       if (whF && r["WH Name"] !== whF) return false;
       if (stF && getPickupStatus(r) !== stF) return false;
+      if (condF) {
+        const issues = getRowIssues(r);
+        if (!issues.some(iss => iss.code === condF)) return false;
+      }
       if (srchF) {
         const hay = [r["Customer Name"],r["Purchase bill number"],r["LR Number"],r["Transport"]].join(" ").toLowerCase();
         if (!hay.includes(srchF)) return false;
@@ -671,7 +759,7 @@
     const tbody = document.getElementById("table-body");
 
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="13"><div class="empty-state">No matching records</div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="14"><div class="empty-state">No matching records</div></td></tr>';
       return;
     }
 
@@ -687,30 +775,15 @@
         ? `<span class="delay-chip ontime">✓ On time</span>`
         : `<span class="delay-chip pending">– Pending</span>`;
 
-      let issues = [];
-      const mailDate = parseDate(r["Mail Receievd  Date"]);
-      const arrivedWh = parseDate(r["Arrived at WH Date"]);
-      const arrived = parseDate(r["Arrived Date"]) || arrivedWh;
-      const delivered = parseDate(r["Delivred Date"]) || parseDate(r["Delivered Date"]);
-      const inward = parseDate(r["Inward Date"]);
-
-      if (pickup && mailDate && (pickup - mailDate) / 86400000 > 3) {
-        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (&gt;3d from Mail) - Acc: Sukanth</div>`);
-      }
-      if (pickup && initiated && (pickup - initiated) / 86400000 > 3) {
-        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (&gt;3d from Initiated) - Acc: Niranjan</div>`);
-      }
-      if (arrivedWh && pickup && (arrivedWh - pickup) / 86400000 > 10) {
-        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (&gt;10d to WH) - Acc: Logistics Team</div>`);
-      }
-      if (delivered && arrived && (delivered - arrived) / 86400000 > 2) {
-        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (acconting by WH) - Acc: WH Team</div>`);
-      }
-      if (inward && delivered && (inward - delivered) / 86400000 > 3) {
-        issues.push(`<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> (Inward &gt;3d) - Acc: WH Team</div>`);
-      }
-      const issuesHtml = issues.length > 0 ? issues.join("") : `<span style="color:var(--text-muted);font-size:12px;">None</span>`;
+      const issues = getRowIssues(r);
+      const issuesHtml = issues.length > 0 
+        ? issues.map(iss => `<div style="color:var(--red);font-size:11px;margin-bottom:2px;"><b>DELAYED</b> ${iss.text}</div>`).join("")
+        : `<span style="color:var(--text-muted);font-size:12px;">None</span>`;
       
+      const accHtml = issues.length > 0
+        ? [...new Set(issues.map(iss => iss.acc))].map(acc => `<div style="font-size:11px;font-weight:600;">${acc}</div>`).join("")
+        : `<span style="color:var(--text-muted);font-size:12px;">–</span>`;
+
       const rowClass = (issues.length > 0 || status === "delayed") ? "delayed" : status;
 
       const compDelivered = r["Delivred Date"] && r["Delivred Date"].toUpperCase() !== "NA" ? r["Delivred Date"] : "";
@@ -726,6 +799,7 @@
         <td>${r["Pickup Date"]&&r["Pickup Date"].toUpperCase()!=="NA"?r["Pickup Date"]:"–"}</td>
         <td>${chipHtml}</td>
         <td>${issuesHtml}</td>
+        <td>${accHtml}</td>
         <td>${compDelivered||'<span style="color:var(--text-muted)">Pending</span>'}</td>
         <td>${poOk?`<span class="dot green"></span>${r["PO Staus"]}`:`<span class="dot gray"></span>–`}</td>
         <td>${prOk?`<span class="dot green"></span>${r["PR Staus"]}`:`<span class="dot gray"></span>–`}</td>
@@ -733,6 +807,34 @@
         <td style="max-width:160px;white-space:normal;font-size:12px;color:var(--text-muted)">${r["Remark"]||""}</td>
       </tr>`;
     }).join("");
+  }
+
+  function getRowIssues(r) {
+    const issues = [];
+    const mailDate = parseDate(r["Mail Receievd  Date"]);
+    const initiated = parseDate(r["Intatied pickup Date"]);
+    const pickup    = parseDate(r["Pickup Date"]);
+    const arrivedWh = parseDate(r["Arrived at WH Date"]);
+    const arrived = parseDate(r["Arrived Date"]) || arrivedWh;
+    const delivered = parseDate(r["Delivred Date"]) || parseDate(r["Delivered Date"]);
+    const inward = parseDate(r["Inward Date"]);
+
+    if (pickup && mailDate && (pickup - mailDate) / 86400000 > 3) {
+      issues.push({ code: "c1", text: "(&gt;3d from Mail)", acc: "Sukanth" });
+    }
+    if (pickup && initiated && (pickup - initiated) / 86400000 > 3) {
+      issues.push({ code: "c2", text: "(&gt;3d from Initiated)", acc: "Niranjan" });
+    }
+    if (arrivedWh && pickup && (arrivedWh - pickup) / 86400000 > 10) {
+      issues.push({ code: "c3", text: "(&gt;10d to WH)", acc: "Logistics Team" });
+    }
+    if (delivered && arrived && (delivered - arrived) / 86400000 > 2) {
+      issues.push({ code: "c4", text: "(accounting by WH)", acc: "WH Team" });
+    }
+    if (inward && delivered && (inward - delivered) / 86400000 > 3) {
+      issues.push({ code: "c5", text: "(Inward &gt;3d)", acc: "WH Team" });
+    }
+    return issues;
   }
 
   function sortBy(col) {
@@ -743,6 +845,7 @@
   function clearFilters() {
     document.getElementById("filter-wh").value = "";
     document.getElementById("filter-status").value = "";
+    document.getElementById("filter-condition").value = "";
     document.getElementById("filter-search").value = "";
     applyFilters();
   }
